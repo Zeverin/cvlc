@@ -5,6 +5,7 @@
 #include "dbg.h"
 #include "bstrlib.h"
 #include "mac1.h"
+#include "mac2.h"
 
 #define MAX_DATA 256
 #define SAMPLES 15
@@ -61,7 +62,7 @@ int read_chars(char *in)
   char_in_buffer = bfromcstr("");
 
   //Read chars into memory
-  rc = bsreadln(char_in_buffer, stream, '\n');
+  rc = bsreadln(char_in_buffer, stream, EOF);
   check(rc == BSTR_OK, "Failed to read chars into memory.");
 
   //Trim whitespace
@@ -173,6 +174,12 @@ char get_next_bit(int n)
   else return 0;
 }
 
+char get_next_real_bit(int n)
+{
+  int rc = 0;
+  return get_bit();
+}
+
 /* Description: Read a bstring of bits and attempt to reconstruct the data.
  * Author: Albin Severinson
  * Date: 19/02/15
@@ -210,8 +217,11 @@ int bits_to_chars()
       //Get the real bit for comparison
       real_bit = bchar(bit_out_buffer, i*8 + j);
 
+      //Set the real bit to LED
+      send_bit(real_bit);
+
       //Get the measured bit
-      measured_bit = get_next_bit(i*8 + j);
+      measured_bit = get_next_real_bit(i*8 + j);
       printf("%d", measured_bit);
 
       //Check for bit errors
@@ -265,7 +275,11 @@ int bits_to_chars()
 int main(int argc, char *argv[])
 {
   int rc = 0;
+  rc = init_gpio();
+  check(rc == 0, "Failed to init gpio.");
+
   rc = read_chars("in_file.txt"); 
+  //rc = read_chars("P2221284.ORF");
   rc = chars_to_bits();
   rc = bits_to_chars();
 
@@ -274,5 +288,6 @@ int main(int argc, char *argv[])
   bstring recieved_bstring = get_bstring();
   printf("Recieved bstring from MAC1: %s\n", bdata(recieved_bstring));
 
+ error:
   return rc;
 }
